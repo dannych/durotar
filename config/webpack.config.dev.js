@@ -1,5 +1,3 @@
-'use strict';
-
 var autoprefixer = require('autoprefixer');
 var webpack = require('webpack');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -66,33 +64,31 @@ module.exports = {
   resolve: {
     // This allows you to set a fallback for where Webpack should look for modules.
     // We read `NODE_PATH` environment variable in `paths.js` and pass paths here.
-    // We use `fallback` instead of `root` because we want `node_modules` to "win"
-    // if there any conflicts. This matches Node resolution mechanism.
+    // We placed these paths second because we want `node_modules` to "win"
+    // if there are conflicts. This matches Node resolution mechanism.
     // https://github.com/facebookincubator/create-react-app/issues/253
-    fallback: paths.nodePaths,
+    modules: ['node_modules'].concat(paths.nodePaths),
     // These are the reasonable defaults supported by the Node ecosystem.
     // We also include JSX as a common component filename extension to support
     // some tools, although we do not recommend using it, see:
     // https://github.com/facebookincubator/create-react-app/issues/290
-    extensions: ['.js', '.json', '.jsx', ''],
+    extensions: ['.js', '.json', '.jsx'],
     alias: {
       // Support React Native Web
       // https://www.smashingmagazine.com/2016/08/a-glimpse-into-the-future-with-react-native-for-web/
       'react-native': 'react-native-web'
     }
   },
-  
   module: {
     // First, run the linter.
     // It's important to do this before Babel processes the JS.
-    preLoaders: [
+    rules: [
       {
         test: /\.(js|jsx)$/,
-        loader: 'eslint',
+        loader: 'eslint-loader',
         include: paths.appSrc,
-      }
-    ],
-    loaders: [
+        enforce: 'pre'
+      },
       // ** ADDING/UPDATING LOADERS **
       // The "url" loader handles all assets unless explicitly excluded.
       // The `exclude` list *must* be updated with every change to loader extensions.
@@ -107,16 +103,17 @@ module.exports = {
           // We have to write /\.(js|jsx)(\?.*)?$/ rather than just /\.(js|jsx)$/
           // because you might change the hot reloading server from the custom one
           // to Webpack's built-in webpack-dev-server/client?/, which would not
-          // get properly excluded by /\.(js|jsx)$/ because of the query string.
+          // get properly excluded by /\.(js|jsx)$/ because of the options string.
           // Webpack 2 fixes this, but for now we include this hack.
           // https://github.com/facebookincubator/create-react-app/issues/1713
           /\.(js|jsx)(\?.*)?$/,
           /\.css$/,
+          /\.scss$/,
           /\.json$/,
           /\.svg$/
         ],
-        loader: 'url',
-        query: {
+        loader: 'url-loader',
+        options: {
           limit: 10000,
           name: 'static/media/[name].[hash:8].[ext]'
         }
@@ -125,9 +122,9 @@ module.exports = {
       {
         test: /\.(js|jsx)$/,
         include: paths.appSrc,
-        loader: 'babel',
-        query: {
-          
+        loader: 'babel-loader',
+        options: {
+
           // This is a feature of `babel-loader` for webpack (not Babel itself).
           // It enables caching results in ./node_modules/.cache/babel-loader/
           // directory for faster rebuilds.
@@ -141,19 +138,34 @@ module.exports = {
       // in development "style" loader enables hot editing of CSS.
       {
         test: /\.css$/,
-        loader: 'style!css?importLoaders=1!postcss'
+        use: ['style-loader','css-loader','sass-loader', {
+          loader: 'postcss-loader',
+          options: {
+            ident: 'postcss',
+            plugins: function() {
+              return [autoprefixer({
+                browsers: [
+                  '>1%',
+                  'last 4 versions',
+                  'Firefox ESR',
+                  'not ie < 9'
+                ]
+              })]
+            }
+          }
+        }]
       },
       // JSON is not enabled by default in Webpack but both Node and Browserify
       // allow it implicitly so we also enable it.
       {
         test: /\.json$/,
-        loader: 'json'
+        loader: 'json-loader'
       },
       // "file" loader for svg
       {
         test: /\.svg$/,
-        loader: 'file',
-        query: {
+        loader: 'file-loader',
+        options: {
           name: 'static/media/[name].[hash:8].[ext]'
         }
       }
@@ -161,20 +173,7 @@ module.exports = {
       // Remember to add the new extension(s) to the "url" loader exclusion list.
     ]
   },
-  
-  // We use PostCSS for autoprefixing only.
-  postcss: function() {
-    return [
-      autoprefixer({
-        browsers: [
-          '>1%',
-          'last 4 versions',
-          'Firefox ESR',
-          'not ie < 9', // React doesn't support IE8 anyway
-        ]
-      }),
-    ];
-  },
+
   plugins: [
     // Makes some environment variables available in index.html.
     // The public URL is available as %PUBLIC_URL% in index.html, e.g.:
