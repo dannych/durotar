@@ -7,8 +7,5 @@
     "es6": true,
     "browser": true,
     "jest": true
-  },
-  "rules": {
-    "linebreak-style": "off"
   }
 }
